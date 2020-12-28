@@ -13,11 +13,19 @@ int validationInput();
 bool makeChoice(char& choise);
 bool makeChoice_in_order(char& choice);
 
+enum Request_Codes
+{
+    AUTHORIZATION = 11111,
+    CHECK_BALANCE = 22222,
+    ITEM_DETAILED_INFO = 33333,
+    SELL_MENU = 44444
+};
+
 void show_item_detail_info()
 {
     cout<<"===showing item detailed info==="<<endl;
 
-    string request_code="11111";
+    string request_code=to_string(ITEM_DETAILED_INFO);
     int msg_size=sizeof(request_code);
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
@@ -43,7 +51,7 @@ void show_inventory_balance()
 {
     cout<<"===showing inventory total balance==="<<endl;
 
-    string request_code="22222";
+    string request_code=to_string(CHECK_BALANCE);
     int msg_size=request_code.size();
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
@@ -66,7 +74,7 @@ void sell_goods()
     char choice;
     string temp_str;
 
-    string request_code="33333";
+    string request_code=to_string(SELL_MENU);
     int msg_size=sizeof(request_code);
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
@@ -332,7 +340,7 @@ void authorization(string& user_name, int& user_role)
     //названия переменных более понятные
 
     //отправляю код запроса, в if else на сервере обрабатывается
-    string request_code="77777";
+    string request_code=to_string(AUTHORIZATION);
     int msg_size=sizeof(request_code);
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
