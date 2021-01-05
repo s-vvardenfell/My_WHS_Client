@@ -44,6 +44,7 @@ void show_item_detail_info()
 
     cout<<record_from_table<<endl;
 
+    delete[] record_from_table;
 
 }
 
@@ -64,6 +65,7 @@ void show_inventory_balance()
     cout<<"id  name    amount  price"<<endl;
     cout<<records_from_table<<endl;
 
+    delete[] records_from_table;
 
 }
 
@@ -96,6 +98,8 @@ void sell_goods()
 
     //сделать тут вектор строк или multimap как на сервере; использ _ как разделитель, * как множитель заказ*количество
     temp_str = records_from_table;
+
+    delete[] records_from_table;
 
     string rec1 = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
@@ -142,6 +146,8 @@ void sell_goods()
     order_total_cost[msg_size] = '\0';
     recv(Connection, order_total_cost, msg_size, NULL);
     cout<<order_total_cost<<endl;
+
+    delete[] order_total_cost;
 
     //получаем имя и адрес клиента
     string str, customer_name, customer_address;
@@ -232,6 +238,8 @@ void sell_goods()
         order_date.append(to_string(1+gmtm->tm_mon));
 
         string order = full_order_from_server;
+
+        delete[] full_order_from_server;
 
         string customer_data = order.substr(0, order.find('#'));
         order.erase(0, order.find('#')+1);
@@ -365,6 +373,9 @@ void authorization(string& user_name, int& user_role)
     recv(Connection, user_role_from_bd, msg_size, NULL);
     user_role=atoi(user_role_from_bd);
     cout<<"user_role_from_bd: "<<user_role_from_bd<<endl;
+
+    delete[] user_name_from_bd;
+    delete[] user_role_from_bd;
 
 }
 
