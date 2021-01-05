@@ -353,18 +353,11 @@ void authorization(string& user_name, int& user_role)
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
-    //отправл€ю им€ пользовател€
-    msg_size=str_login.size();
+    //отправл€ю логин*пароль
+    string login_and_password = str_login+"*"+str_pasw;
+    msg_size=login_and_password.size();
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
-    send(Connection, str_login.c_str(), msg_size, NULL);
-
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
-    char* user_name_from_bd = new char[msg_size + 1];
-    user_name_from_bd[msg_size] = '\0';
-    recv(Connection, user_name_from_bd, msg_size, NULL);
-    user_name=user_name_from_bd;
-    cout<<"user_name_from_bd: "<<user_name_from_bd<<endl;
-    cout<<"user_name: "<<user_name<<endl;
+    send(Connection, login_and_password.c_str(), msg_size, NULL);
 
     //получаю роль пользовател€; если 0, то меню в main не активируетс€
     recv(Connection, (char*)&msg_size, sizeof(int), NULL);
@@ -374,7 +367,6 @@ void authorization(string& user_name, int& user_role)
     user_role=atoi(user_role_from_bd);
     cout<<"user_role_from_bd: "<<user_role_from_bd<<endl;
 
-    delete[] user_name_from_bd;
     delete[] user_role_from_bd;
 
 }
