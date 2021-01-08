@@ -18,7 +18,8 @@ enum Request_Codes
     AUTHORIZATION = 11111,
     CHECK_BALANCE = 22222,
     ITEM_DETAILED_INFO = 33333,
-    SELL_MENU = 44444
+    SELL_MENU = 44444,
+    REGISTRATION = 55555
 };
 
 void show_item_detail_info()
@@ -287,7 +288,7 @@ void sell_goods()
 
 }
 
-//для удобства тестирования проверка пароля не работает
+
 void authorization(string& user_name, int& user_role)
 {
     cout<<"Authorization..."<<endl;
@@ -373,8 +374,92 @@ void authorization(string& user_name, int& user_role)
 
 void registration()
 {
-    cout<<"registration"<<endl;
+    cout<<"===registration==="<<endl;
+
+    string str, str_login, str_pasw, str_conf_pasw;
+
+    bool gotLogin=false,
+         gotPassword=false;
+
+    while(true)
+    {
+
+        if(gotLogin&&gotPassword)
+        {
+            cout<<"Confirm password: "<<endl;
+            getline(cin, str);
+        }
+
+        if(gotLogin&&!gotPassword)
+        {
+            cout<<"Enter password: "<<endl;
+            getline(cin, str);
+        }
+
+        if(!gotLogin)
+        {
+            cout<<"Enter login: "<<endl;
+            getline(cin, str);
+        }
+
+        bool bRejected = false;
+
+        for (unsigned int nIndex = 0; nIndex < str.length() && !bRejected; ++nIndex)
+        {
+            if (isalpha(str[nIndex]))
+                continue;
+            if (isdigit(str[nIndex]))
+                continue;
+            if (str[nIndex] == '_') //(isspace(str[nIndex])) исправить? это пропускает 2 слова раздел пробелами при вводе
+                continue;
+            else
+            {
+                cout<<"Invalid input"<<endl;
+                bRejected = true;
+            }
+        }
+
+        if(gotLogin&&gotPassword&&!bRejected)
+        {
+            str_conf_pasw=str;
+            break;
+        }
+
+        if (gotLogin&&!bRejected)
+        {
+            gotPassword=true;
+            str_pasw=str;
+
+        }
+
+        if (!bRejected)
+        {
+            gotLogin=true;
+            str_login=str;
+            bRejected=false;
+        }
+
+    }
+
+    if(str_pasw!=str_conf_pasw)
+    {
+        cout<<"Password isn't confirmed"<<endl;
+        return;
+    }
+
+    string request_code=to_string(REGISTRATION);
+    int msg_size=request_code.size();
+    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, request_code.c_str(), msg_size, NULL);
+
+    string name_and_passw = str_login+"*"+str_pasw;
+    msg_size=name_and_passw.size();
+    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, name_and_passw.c_str(), msg_size, NULL);
+
+
 }
+
 
 void make_order()
 {
@@ -567,7 +652,20 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     char choice;
     string user_name_from_db;
     int user_role_from_db;
-    authorization(user_name_from_db, user_role_from_db);
+    //authorization(user_name_from_db, user_role_from_db);
+
+    cout<<"Enter 1 to authorization menu or"<<endl;
+    cout<<"      2 to registration menu: ";
+
+    switch(validationInput())
+    {
+        case 1: authorization(user_name_from_db, user_role_from_db); break;
+        case 2: registration(); break;
+
+        default: cout<<"No such operation"<<endl; return 0;
+    }
+
+
 
     if(user_role_from_db==1)
     {
