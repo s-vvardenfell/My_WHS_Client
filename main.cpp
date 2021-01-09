@@ -19,7 +19,8 @@ enum Request_Codes
     CHECK_BALANCE = 22222,
     ITEM_DETAILED_INFO = 33333,
     SELL_MENU = 44444,
-    REGISTRATION = 55555
+    REGISTRATION = 55555,
+    CHECK_ORDER_STATUS = 66666
 };
 
 void show_item_detail_info()
@@ -372,7 +373,7 @@ void authorization(string& user_name, int& user_role)
 
 }
 
-void registration()
+void registration(string& user_name, int& user_role)
 {
     cout<<"===registration==="<<endl;
 
@@ -447,6 +448,9 @@ void registration()
         return;
     }
 
+    user_name=str_login;
+    user_role=2; //задаетс€ на сервере 2, не отправл€ю: невозможно создать администратора из приложени€ клиента
+
     string request_code=to_string(REGISTRATION);
     int msg_size=request_code.size();
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
@@ -460,15 +464,25 @@ void registration()
 
 }
 
-
-void make_order()
-{
-    cout<<"===making an order==="<<endl;
-}
-
 void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; иначе заказ в подробност€х
 {
     cout<<"===checking order status==="<<endl;
+
+    //send request code
+    string request_code=to_string(CHECK_ORDER_STATUS);
+    int msg_size=request_code.size();
+    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, request_code.c_str(), msg_size, NULL);
+
+    //getting from client and sending order number to server
+    cout<<"Enter order number: ";
+    int order_number = validationInput();
+    send(Connection, (char*)&order_number, sizeof(int), NULL);
+    cout<<endl;
+//    int msg_size=request_code.size();
+//    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+//    send(Connection, request_code.c_str(), msg_size, NULL);
+
 }
 
 //возможно стоит сделать несколько вариантов с пон€тной подсказкой на повторение в cout<<continue что именно?
@@ -604,8 +618,9 @@ int selectOperation(int& auth)
         else
         if(auth==2)
         {
-            cout <<"[1] Make new order"<<endl;
-            cout <<"[2] Check order status/details"<<endl;
+
+            cout <<"[1] Check order status/details"<<endl;
+            //cout <<"[2] Make new order"<<endl; //deleted
         }
 
 		operation_id=validationInput();
@@ -651,8 +666,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
 
     char choice;
     string user_name_from_db;
-    int user_role_from_db;
-    //authorization(user_name_from_db, user_role_from_db);
+    int user_role_from_db=0;
 
     cout<<"Enter 1 to authorization menu or"<<endl;
     cout<<"      2 to registration menu: ";
@@ -660,9 +674,9 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     switch(validationInput())
     {
         case 1: authorization(user_name_from_db, user_role_from_db); break;
-        case 2: registration(); break;
+        case 2: registration(user_name_from_db, user_role_from_db); break;
 
-        default: cout<<"No such operation"<<endl; return 0;
+        default: cout<<"No such operation"<<endl; break;
     }
 
 
@@ -677,7 +691,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
             case 1: sell_goods(); break;
             case 2: show_inventory_balance(); break;
             case 3: show_item_detail_info(); break;
-            //другой функцинал
+            //any other functions
 
             default: cout<<"No such operation"<<endl; break;
         }
@@ -693,9 +707,9 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
         {
         switch(selectOperation(user_role_from_db))
         {
-            case 1: make_order(); break;
-            case 2: check_order_status(); break;
-            //другой функцинал
+
+            case 1: check_order_status(); break;
+            //case 2: make_order(); break; //for instance; any other functions
 
             default: cout<<"No such operation"<<endl; break;
         }
