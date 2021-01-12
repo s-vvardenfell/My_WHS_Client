@@ -29,17 +29,20 @@ void show_item_detail_info()
 
     string request_code=to_string(ITEM_DETAILED_INFO);
     int msg_size=sizeof(request_code);
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+//    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     cout<<"Enter item code: "<<endl;
     int i_c = validationInput();
     string str_item_code = to_string(i_c);
     msg_size=str_item_code.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+//    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, str_item_code.c_str(), msg_size, NULL);
 
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+//    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* record_from_table = new char[msg_size + 1];
     record_from_table[msg_size] = '\0';
     recv(Connection, record_from_table, msg_size, NULL);
@@ -470,7 +473,7 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
 
     //send request code
     string request_code=to_string(CHECK_ORDER_STATUS);
-    int msg_size=request_code.size();
+    int msg_size=sizeof(request_code);
     send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
@@ -479,10 +482,16 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
     int order_number = validationInput();
     send(Connection, (char*)&order_number, sizeof(int), NULL);
     cout<<endl;
-//    int msg_size=request_code.size();
-//    send(Connection, (char*)&msg_size, sizeof(int), NULL);
-//    send(Connection, request_code.c_str(), msg_size, NULL);
 
+
+    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    char* order_details = new char[msg_size + 1];
+    order_details[msg_size] = '\0';
+    recv(Connection, order_details, msg_size, NULL);
+
+    cout<<order_details<<endl;
+
+    delete[] order_details;
 }
 
 //возможно стоит сделать несколько вариантов с понятной подсказкой на повторение в cout<<continue что именно?
