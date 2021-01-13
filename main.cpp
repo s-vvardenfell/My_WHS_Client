@@ -10,6 +10,7 @@ using namespace std;
 SOCKET Connection;
 
 int validationInput();
+float validationInput(float);
 bool makeChoice(char& choise);
 bool makeChoice_in_order(char& choice);
 
@@ -23,12 +24,20 @@ enum Request_Codes
     CHECK_ORDER_STATUS = 66666
 };
 
+enum User_Roles
+{
+    MANAGER = 1,
+    CUSTOMER = 2,
+    ADMIN = 3,
+    NO_USER = 0
+};
+
 void show_item_detail_info()
 {
     cout<<"===showing item detailed info==="<<endl;
 
     string request_code=to_string(ITEM_DETAILED_INFO);
-    int msg_size=sizeof(request_code);
+    int msg_size=request_code.size();
 //    send(Connection, (char*)&msg_size, sizeof(int), NULL);
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
@@ -82,7 +91,7 @@ void sell_goods()
     string temp_str;
 
     string request_code=to_string(SELL_MENU);
-    int msg_size=sizeof(request_code);
+    int msg_size=request_code.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
@@ -101,31 +110,38 @@ void sell_goods()
     records_from_table[msg_size] = '\0';
     recv(Connection, records_from_table, msg_size, NULL);
 
-    //сделать тут вектор строк или multimap как на сервере; использ _ как разделитель, * как множитель заказ*количество
     temp_str = records_from_table;
 
     delete[] records_from_table;
 
-    string rec1 = temp_str.substr(0, temp_str.find('*'));
+    string stock_goods = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
 
-    string rec2 = temp_str.substr(0, temp_str.find('*'));
+    string stock_amount = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
 
-    string rec3 = temp_str.substr(0, temp_str.find('*'));
-    temp_str.erase(0, temp_str.find('*')+1);
+    string stock_price = temp_str.erase(temp_str.size()-1);//deleting '\n'
 
-
-    cout<<"In stock "<<rec2<<" "<<rec1<<" worth "<<rec3<<" rubles each."<<endl;
+    cout<<"There is "<<stock_amount<<" \""<<stock_goods<<"\" worth "<<stock_price<<" rubles each."<<endl;
     cout<<"Enter quantity for the order: ";
-    int amnt = validationInput();
 
-
-    if(amnt>atoi(rec2.c_str()))//лучше бы сделать повторный запрос, вдруг др манагер обновит кол-во в другом потоке
+    bool notEnough;
+    float amnt;
+    do
     {
-        cout<<"There is not enough product in stock for your order."<<endl;
-        return;
-    }
+        amnt = validationInput(1.1);
+
+        if(amnt>atof(stock_amount.c_str()))
+        {
+            cout<<"There is not enough product in stock for your order. Add a smaller amount."<<endl;
+            notEnough=true;
+        }
+        else
+        {
+            notEnough=false;
+        }
+
+    }while(notEnough);
 
     ss_order<<str_item_code<<"*"<<to_string(amnt)<<"_";
     cout<<endl;
@@ -355,7 +371,7 @@ void authorization(string& user_name, int& user_role)
 
     //отправляю код запроса, в if else на сервере обрабатывается
     string request_code=to_string(AUTHORIZATION);
-    int msg_size=sizeof(request_code);
+    int msg_size=request_code.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
@@ -365,15 +381,17 @@ void authorization(string& user_name, int& user_role)
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, login_and_password.c_str(), msg_size, NULL);
 
+
     //получаю роль пользователя; если 0, то меню в main не активируется
     recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* user_role_from_bd = new char[msg_size + 1];
     user_role_from_bd[msg_size] = '\0';
     recv(Connection, user_role_from_bd, msg_size, NULL);
     user_role=atoi(user_role_from_bd);
-    cout<<"user_role_from_bd: "<<user_role_from_bd<<endl;
 
+    cout<<"user_role_from_bd: "<<user_role_from_bd<<endl;
     delete[] user_role_from_bd;
+
 
 }
 
@@ -453,7 +471,7 @@ void registration(string& user_name, int& user_role)
     }
 
     user_name=str_login;
-    user_role=2; //задается на сервере 2, не отправляю: невозможно создать администратора из приложения клиента
+    user_role=CUSTOMER; //won't send: cannot create admin/manager with client application
 
     string request_code=to_string(REGISTRATION);
     int msg_size=request_code.size();
@@ -465,7 +483,6 @@ void registration(string& user_name, int& user_role)
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, name_and_passw.c_str(), msg_size, NULL);
 
-
 }
 
 void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; иначе заказ в подробностях
@@ -474,7 +491,7 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
 
     //send request code
     string request_code=to_string(CHECK_ORDER_STATUS);
-    int msg_size=sizeof(request_code);
+    int msg_size=request_code.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
@@ -594,9 +611,9 @@ int validationInput()
     }
 }
 
-double validationInput(double)
+float validationInput(float)
 {
-    double val;
+    float val;
     while (true)
     {
         std::cin >> val;
@@ -619,14 +636,14 @@ int selectOperation(int& auth)
 	int operation_id=0; //перечисление сюда
 	while (true)
     {
-		if(auth==1)
+		if(auth==MANAGER)
         {
             cout <<"[1] Sell goods"<<endl;
             cout <<"[2] Show balance"<<endl;
             cout <<"[3] Show item detailed info"<<endl;
         }
         else
-        if(auth==2)
+        if(auth==CUSTOMER)
         {
 
             cout <<"[1] Check order status/details"<<endl;
@@ -676,7 +693,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
 
     char choice;
     string user_name_from_db;
-    int user_role_from_db=0;
+    int user_role_from_db=NO_USER;
 
     cout<<"Enter 1 to authorization menu or"<<endl;
     cout<<"      2 to registration menu: ";
@@ -689,7 +706,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
         default: cout<<"No such operation"<<endl; break;
     }
 
-    if(user_role_from_db==1)
+    if(user_role_from_db==MANAGER)
     {
         cout<<"Manager "<<user_name_from_db<<" console menu"<<endl;
     do
@@ -707,7 +724,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     }while(makeChoice(choice));
 
     }
-    else if(user_role_from_db==2)
+    else if(user_role_from_db==CUSTOMER)
     {
        cout<<"Customer "<<user_name_from_db<<" console menu"<<endl;
 
