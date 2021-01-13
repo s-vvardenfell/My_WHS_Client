@@ -689,8 +689,6 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
         default: cout<<"No such operation"<<endl; break;
     }
 
-
-
     if(user_role_from_db==1)
     {
         cout<<"Manager "<<user_name_from_db<<" console menu"<<endl;
