@@ -59,10 +59,10 @@ void show_inventory_balance()
 
     string request_code=to_string(CHECK_BALANCE);
     int msg_size=request_code.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     cout<<"msg_size "<<msg_size<<endl;
     char* records_from_table = new char[msg_size + 1];
     records_from_table[msg_size] = '\0';
@@ -83,7 +83,7 @@ void sell_goods()
 
     string request_code=to_string(SELL_MENU);
     int msg_size=sizeof(request_code);
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     //цикл набора заказа
@@ -93,10 +93,10 @@ void sell_goods()
     int it_code = validationInput();
     string str_item_code = to_string(it_code);
     msg_size=str_item_code.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, str_item_code.c_str(), msg_size, NULL);
 
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* records_from_table = new char[msg_size + 1];
     records_from_table[msg_size] = '\0';
     recv(Connection, records_from_table, msg_size, NULL);
@@ -120,6 +120,7 @@ void sell_goods()
     cout<<"Enter quantity for the order: ";
     int amnt = validationInput();
 
+
     if(amnt>atoi(rec2.c_str()))//лучше бы сделать повторный запрос, вдруг др манагер обновит кол-во в другом потоке
     {
         cout<<"There is not enough product in stock for your order."<<endl;
@@ -141,12 +142,12 @@ void sell_goods()
 
     //отправляем на сервер строку, содержащую заказ
     msg_size=temp_str.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, temp_str.c_str(), msg_size, NULL);
 
     //получаем общую стоимость всего заказа
     cout<<"Total cost of the order: ";
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* order_total_cost = new char[msg_size + 1];
     order_total_cost[msg_size] = '\0';
     recv(Connection, order_total_cost, msg_size, NULL);
@@ -215,7 +216,7 @@ void sell_goods()
         //отправляю имя*адрес клиента на сервер
         temp_str=customer_name+"*"+customer_address;
         msg_size=temp_str.size();
-        send(Connection, (char*)&msg_size, sizeof(int), NULL);
+        send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
         send(Connection, temp_str.c_str(), msg_size, NULL);
     }
     else
@@ -223,12 +224,12 @@ void sell_goods()
         cout<<"deleting temporary data"<<endl;//отправляем запрос на удаление временного заказа
         temp_str="@denied@";
         msg_size=temp_str.size();
-        send(Connection, (char*)&msg_size, sizeof(int), NULL);
+        send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
         send(Connection, temp_str.c_str(), msg_size, NULL);
     }
 
         //принимаю данные всего заказа для формирования чека
-        recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+        recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
         char* full_order_from_server = new char[msg_size + 1];
         full_order_from_server[msg_size] = '\0';
         recv(Connection, full_order_from_server, msg_size, NULL);
@@ -355,17 +356,17 @@ void authorization(string& user_name, int& user_role)
     //отправляю код запроса, в if else на сервере обрабатывается
     string request_code=to_string(AUTHORIZATION);
     int msg_size=sizeof(request_code);
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     //отправляю логин*пароль
     string login_and_password = str_login+"*"+str_pasw;
     msg_size=login_and_password.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, login_and_password.c_str(), msg_size, NULL);
 
     //получаю роль пользователя; если 0, то меню в main не активируется
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* user_role_from_bd = new char[msg_size + 1];
     user_role_from_bd[msg_size] = '\0';
     recv(Connection, user_role_from_bd, msg_size, NULL);
@@ -456,12 +457,12 @@ void registration(string& user_name, int& user_role)
 
     string request_code=to_string(REGISTRATION);
     int msg_size=request_code.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     string name_and_passw = str_login+"*"+str_pasw;
     msg_size=name_and_passw.size();
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, name_and_passw.c_str(), msg_size, NULL);
 
 
@@ -474,17 +475,17 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
     //send request code
     string request_code=to_string(CHECK_ORDER_STATUS);
     int msg_size=sizeof(request_code);
-    send(Connection, (char*)&msg_size, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     //getting from client and sending order number to server
     cout<<"Enter order number: ";
     int order_number = validationInput();
     send(Connection, (char*)&order_number, sizeof(int), NULL);
+    send(Connection, reinterpret_cast<char*>(&order_number), sizeof(int), NULL);
     cout<<endl;
 
-
-    recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* order_details = new char[msg_size + 1];
     order_details[msg_size] = '\0';
     recv(Connection, order_details, msg_size, NULL);
@@ -524,7 +525,7 @@ bool makeChoice_in_order(char& choice) // предлагаем повторить
         {
             continue_order = "1";
             msg_size=continue_order.size();
-            send(Connection, (char*)&msg_size, sizeof(int), NULL);
+            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
             send(Connection, continue_order.c_str(), msg_size, NULL);
 
             return true;
@@ -533,7 +534,7 @@ bool makeChoice_in_order(char& choice) // предлагаем повторить
         {
             continue_order = "0";
             msg_size=continue_order.size();
-            send(Connection, (char*)&msg_size, sizeof(int), NULL);
+            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
             send(Connection, continue_order.c_str(), msg_size, NULL);
 
             return false;
@@ -556,7 +557,7 @@ bool makeChoice_in_server(char& choice) // предлагаем выбрать оформлять заказ ил
         {
             continue_order = "1";
             msg_size=continue_order.size();
-            send(Connection, (char*)&msg_size, sizeof(int), NULL);
+            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
             send(Connection, continue_order.c_str(), msg_size, NULL);
 
             return true;
@@ -565,7 +566,7 @@ bool makeChoice_in_server(char& choice) // предлагаем выбрать оформлять заказ ил
         {
             continue_order = "0";
             msg_size=continue_order.size();
-            send(Connection, (char*)&msg_size, sizeof(int), NULL);
+            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
             send(Connection, continue_order.c_str(), msg_size, NULL);
 
             return false;
