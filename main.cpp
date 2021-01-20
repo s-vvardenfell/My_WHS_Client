@@ -21,7 +21,10 @@ enum Request_Codes
     ITEM_DETAILED_INFO = 33333,
     SELL_MENU = 44444,
     REGISTRATION = 55555,
-    CHECK_ORDER_STATUS = 66666
+    CHECK_ORDER_STATUS = 66666,
+    CHANGE_USER = 77777,
+    USER_EXIT = 88888,
+
 };
 
 enum User_Roles
@@ -455,7 +458,7 @@ void registration(string& user_name, int& user_role)
 
         }
 
-        if (!bRejected)
+        if (!bRejected&&!gotLogin)
         {
             gotLogin=true;
             str_login=str;
@@ -471,7 +474,6 @@ void registration(string& user_name, int& user_role)
     }
 
     user_name=str_login;
-    user_role=CUSTOMER; //won't send: cannot create admin/manager with client application
 
     string request_code=to_string(REGISTRATION);
     int msg_size=request_code.size();
@@ -479,9 +481,28 @@ void registration(string& user_name, int& user_role)
     send(Connection, request_code.c_str(), msg_size, NULL);
 
     string name_and_passw = str_login+"*"+str_pasw;
+    cout<<"name_and_passw: "<<name_and_passw<<endl;
     msg_size=name_and_passw.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, name_and_passw.c_str(), msg_size, NULL);
+
+    //getting user_role from serer: 0 if not successfully, 1,3 for manager, administrator, 2 for customer
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    char* registration_confirm_by_user_role = new char[msg_size + 1];
+    registration_confirm_by_user_role[msg_size] = '\0';
+    recv(Connection, registration_confirm_by_user_role, msg_size, NULL);
+
+    user_role = atoi(registration_confirm_by_user_role);
+
+    if(user_role)
+    {
+        cout<<"User "<<user_name<<" had registered successfully"<<endl;
+    }
+    else
+    {
+        cout<<"Registration error"<<endl;
+    }
+
 
 }
 
@@ -498,8 +519,11 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
     //getting from client and sending order number to server
     cout<<"Enter order number: ";
     int order_number = validationInput();
-    send(Connection, (char*)&order_number, sizeof(int), NULL);
-    send(Connection, reinterpret_cast<char*>(&order_number), sizeof(int), NULL);
+    string str_order_number = to_string(order_number);///мб можно без создания временной string
+    msg_size = str_order_number.size();
+
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    send(Connection, str_order_number.c_str(), msg_size, NULL);
     cout<<endl;
 
     recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
@@ -641,13 +665,17 @@ int selectOperation(int& auth)
             cout <<"[1] Sell goods"<<endl;
             cout <<"[2] Show balance"<<endl;
             cout <<"[3] Show item detailed info"<<endl;
+            cout <<"[4] Change user"<<endl;
+            cout <<"[5] Exit"<<endl;
         }
         else
         if(auth==CUSTOMER)
         {
 
             cout <<"[1] Check order status/details"<<endl;
-            //cout <<"[2] Make new order"<<endl; //deleted
+            cout <<"[2] Change user"<<endl;
+            cout <<"[3] Exit"<<endl;
+            //cout <<"[3] Make new order"<<endl; //deleted
         }
 
 		operation_id=validationInput();
@@ -657,10 +685,36 @@ int selectOperation(int& auth)
 		    case 1: return 1; break;
             case 2: return 2; break;
             case 3: return 3; break;
+            case 4: return 4; break;
+            case 5: return 5; break;
             default: return 0; break;
 		}
 
 	}
+}
+
+void change_user()
+{
+    cout<<"========Changing user========"<<endl;
+
+    string request_code=to_string(CHANGE_USER);
+    int msg_size=request_code.size();
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    send(Connection, request_code.c_str(), msg_size, NULL);
+
+
+}
+int exit_from_client()
+{
+    cout<<"=======Exiting from client==========="<<endl;
+
+    string request_code=to_string(USER_EXIT);
+    int msg_size=request_code.size();
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    send(Connection, request_code.c_str(), msg_size, NULL);
+
+    exit(0);
+
 }
 
 int main(int argc, char* argv[])//что-то придумать с флагами?
@@ -695,6 +749,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     string user_name_from_db;
     int user_role_from_db=NO_USER;
 
+
     cout<<"Enter 1 to authorization menu or"<<endl;
     cout<<"      2 to registration menu: ";
 
@@ -703,25 +758,27 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
         case 1: authorization(user_name_from_db, user_role_from_db); break;
         case 2: registration(user_name_from_db, user_role_from_db); break;
 
-        default: cout<<"No such operation"<<endl; break;
+        default: cout<<"No such operation"<<endl; /*exit_from_client();*/ break;
     }
 
     if(user_role_from_db==MANAGER)
     {
         cout<<"Manager "<<user_name_from_db<<" console menu"<<endl;
-    do
-    {
-        switch(selectOperation(user_role_from_db))
+        do
         {
-            case 1: sell_goods(); break;
-            case 2: show_inventory_balance(); break;
-            case 3: show_item_detail_info(); break;
-            //any other functions
+            switch(selectOperation(user_role_from_db))
+            {
+                case 1: sell_goods(); break;
+                case 2: show_inventory_balance(); break;
+                case 3: show_item_detail_info(); break;
+                case 4: change_user(); break;
+                case 5: exit_from_client(); break;
+                //any other functions
 
-            default: cout<<"No such operation"<<endl; break;
-        }
+                default: cout<<"No such operation"<<endl; break;
+            }
 
-    }while(makeChoice(choice));
+        }while(makeChoice(choice));
 
     }
     else if(user_role_from_db==CUSTOMER)
@@ -730,19 +787,26 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
 
         do
         {
-        switch(selectOperation(user_role_from_db))
-        {
+            switch(selectOperation(user_role_from_db))
+            {
 
-            case 1: check_order_status(); break;
-            //case 2: make_order(); break; //for instance; any other functions
+                case 1: check_order_status(); break;
+                case 2: change_user(); break;
+                case 3: exit_from_client(); break;
+                //case 4: make_order(); break; //for instance; any other functions
 
-            default: cout<<"No such operation"<<endl; break;
-        }
+                default: cout<<"No such operation"<<endl; break;
+            }
 
         }while(makeChoice(choice));
     }
     else
+    {
         cout<<"Wrong user name or password"<<endl;
+    }
+
+
+    //exit_from_client();
 
     system("pause");
     return 0;
