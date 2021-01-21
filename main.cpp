@@ -89,7 +89,7 @@ void show_inventory_balance()
 void sell_goods()
 {
     cout<<"===selling goods==="<<endl;
-    stringstream ss_order;//продумать работу с sstream
+    stringstream ss_order;
     char choice;
     string temp_str;
 
@@ -102,9 +102,11 @@ void sell_goods()
     do
     {
     cout<<"Enter item code: ";
+
     int it_code = validationInput();
     string str_item_code = to_string(it_code);
     msg_size=str_item_code.size();
+
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, str_item_code.c_str(), msg_size, NULL);
 
@@ -113,9 +115,17 @@ void sell_goods()
     records_from_table[msg_size] = '\0';
     recv(Connection, records_from_table, msg_size, NULL);
 
+    cout<<"records_from_table: "<<records_from_table<<endl;
+
     temp_str = records_from_table;
 
     delete[] records_from_table;
+
+    if(temp_str=="0 results")
+    {
+        cout<<"no such item code"<<endl;
+        return;
+    }
 
     string stock_goods = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
@@ -123,36 +133,38 @@ void sell_goods()
     string stock_amount = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
 
-    string stock_price = temp_str.erase(temp_str.size()-1);//deleting '\n'
+    string stock_price = temp_str.erase(temp_str.size());//deleting '\n'
+
 
     cout<<"There is "<<stock_amount<<" \""<<stock_goods<<"\" worth "<<stock_price<<" rubles each."<<endl;
     cout<<"Enter quantity for the order: ";
 
     bool notEnough;
     float amnt;
-    do
-    {
-        amnt = validationInput(1.1);
 
-        if(amnt>atof(stock_amount.c_str()))
+        do
         {
-            cout<<"There is not enough product in stock for your order. Add a smaller amount."<<endl;
-            notEnough=true;
-        }
-        else
-        {
-            notEnough=false;
-        }
+            amnt = validationInput(1.1);
 
-    }while(notEnough);
+            if(amnt>atof(stock_amount.c_str()))
+            {
+                cout<<"There is not enough product in stock for your order. Add a smaller amount."<<endl;
+                notEnough=true;
+            }
+            else
+            {
+                notEnough=false;
+            }
 
-    ss_order<<str_item_code<<"*"<<to_string(amnt)<<"_";
-    cout<<endl;
-    cout<<"Product was added to your order"<<endl;
+        }while(notEnough);
 
-    temp_str=ss_order.str();
-    cout<<"In your order:"<<endl;
-    cout<<temp_str<<endl;
+        ss_order<<str_item_code<<"*"<<to_string(amnt)<<"_";
+        cout<<endl;
+        cout<<"Product was added to your order"<<endl;
+
+        temp_str=ss_order.str();
+        cout<<"In your order:"<<endl;
+        cout<<temp_str<<endl;
 
     }while(makeChoice_in_order(choice));// отправляет на сервер сообщение о продолжении ввода
 
@@ -245,6 +257,7 @@ void sell_goods()
         msg_size=temp_str.size();
         send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
         send(Connection, temp_str.c_str(), msg_size, NULL);
+        return;
     }
 
         //принимаю данные всего заказа для формирования чека
@@ -551,7 +564,7 @@ bool makeChoice(char& choice) // предлагаем повторить
 }
 
 //удалить дубирующую ф-ю
-
+//убрать лишнюю отправку размеров для int
 bool makeChoice_in_order(char& choice) // предлагаем повторить
 {
 	int msg_size;
@@ -562,25 +575,27 @@ bool makeChoice_in_order(char& choice) // предлагаем повторить
 		std::cout << "add another item? yes/no - y/n : ";
 		std::cin >> choice;
 		std::cin.ignore(SHRT_MAX, '\n');
-		if (choice == 'y')
-        {
-            continue_order = "1";
-            msg_size=continue_order.size();
-            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-            send(Connection, continue_order.c_str(), msg_size, NULL);
 
-            return true;
-        }
-        else if(choice == 'n')
-        {
-            continue_order = "0";
-            msg_size=continue_order.size();
-            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-            send(Connection, continue_order.c_str(), msg_size, NULL);
+            if (choice == 'y')
+            {
+                continue_order = "1";
+                msg_size=continue_order.size();
+                send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+                send(Connection, continue_order.c_str(), msg_size, NULL);
 
-            return false;
-        }
-		else std::cout << "Input error, do you want ";
+                return true;
+            }
+            else if(choice == 'n')
+            {
+                continue_order = "0";
+                msg_size=continue_order.size();
+                send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+                send(Connection, continue_order.c_str(), msg_size, NULL);
+
+                return false;
+            }
+            else std::cout << "Input error, do you want ";
+
 	}
 }
 
