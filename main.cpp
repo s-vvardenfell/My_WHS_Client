@@ -11,8 +11,13 @@ SOCKET Connection;
 
 int validationInput();
 float validationInput(float);
-bool makeChoice(char& choise);
-bool makeChoice_in_order(char& choice);
+bool makeChoice(char& choice, int version, string &msg);
+
+enum Make_Choice_Versions
+{
+    LOCAL=1,
+    SERVER,
+};
 
 enum Request_Codes
 {
@@ -98,6 +103,7 @@ void sell_goods()
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
 
+    string message = "add another item?";
     //цикл набора заказа
     do
     {
@@ -166,7 +172,7 @@ void sell_goods()
         cout<<"In your order:"<<endl;
         cout<<temp_str<<endl;
 
-    }while(makeChoice_in_order(choice));// отправляет на сервер сообщение о продолжении ввода
+    }while(makeChoice(choice, SERVER, message));// отправляет на сервер сообщение о продолжении ввода
 
     cout<<"Your final order: "<<endl;
     cout<<temp_str<<endl;
@@ -192,8 +198,8 @@ void sell_goods()
     bool gotName=false,
          gotAddress=false;
 
-    cout<<"Confirm order? (y/n)";
-    if(makeChoice(choice))
+    message = "";
+    if(makeChoice(choice, LOCAL, message))
     {
         while(true)
         {
@@ -397,7 +403,6 @@ void authorization(string& user_name, int& user_role)
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, login_and_password.c_str(), msg_size, NULL);
 
-
     //получаю роль пользователя; если 0, то меню в main не активируется
     recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     char* user_role_from_bd = new char[msg_size + 1];
@@ -549,32 +554,32 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
     delete[] order_details;
 }
 
-//возможно стоит сделать несколько вариантов с понятной подсказкой на повторение в cout<<continue что именно?
-bool makeChoice(char& choice) // предлагаем повторить
-{
-	std::cout << "Do you want ";
-	while (true)
-    {
-		std::cout << "to continue? yes/no - y/n : ";
-		std::cin >> choice;
-		std::cin.ignore(SHRT_MAX, '\n');
-		if (choice == 'n' || choice == 'y') return (choice == 'y') ? true : false;
-		else std::cout << "Error, do you want ";
-	}
-}
-
-//удалить дубирующую ф-ю
-//убрать лишнюю отправку размеров для int
-bool makeChoice_in_order(char& choice) // предлагаем повторить
+//добавить enum на версии: in_order, simple, in_server
+bool makeChoice(char& choice, int version, string &msg) // предлагаем повторить
 {
 	int msg_size;
 	string continue_order;
-	std::cout << "Do you want ";
-	while (true)
+	cout << "Do you want ";
+
+	if(version==LOCAL)
     {
-		std::cout << "add another item? yes/no - y/n : ";
-		std::cin >> choice;
-		std::cin.ignore(SHRT_MAX, '\n');
+        while (true)
+        {
+            cout << "to continue? yes/no - y/n : ";
+            cin >> choice;
+            cin.ignore(SHRT_MAX, '\n');
+            if (choice == 'n' || choice == 'y') return (choice == 'y') ? true : false;
+            else cout << "Error, do you want ";
+        }
+    }
+	else if(version==SERVER)
+    {
+        while (true)
+        {
+            cout<<msg<<endl;
+            //cout << "add another item? yes/no - y/n : ";
+            cin >> choice;
+            cin.ignore(SHRT_MAX, '\n');
 
             if (choice == 'y')
             {
@@ -594,43 +599,13 @@ bool makeChoice_in_order(char& choice) // предлагаем повторить
 
                 return false;
             }
-            else std::cout << "Input error, do you want ";
+            else cout << "Input error, do you want ";
 
-	}
-}
-
-bool makeChoice_in_server(char& choice) // предлагаем выбрать оформлять заказ или нет
-{
-	int msg_size;
-	string continue_order;
-	std::cout << "Do you want ";
-	while (true)
-    {
-		std::cout << "place an order? yes/no - y/n : ";
-		std::cin >> choice;
-		std::cin.ignore(SHRT_MAX, '\n');
-		if (choice == 'y')
-        {
-            continue_order = "1";
-            msg_size=continue_order.size();
-            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-            send(Connection, continue_order.c_str(), msg_size, NULL);
-
-            return true;
         }
-        else if(choice == 'n')
-        {
-            continue_order = "0";
-            msg_size=continue_order.size();
-            send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-            send(Connection, continue_order.c_str(), msg_size, NULL);
+    }
 
-            return false;
-        }
-		else std::cout << "Input error, do you want ";
-	}
+
 }
-
 
 int validationInput()
 {
@@ -764,6 +739,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     string user_name_from_db;
     int user_role_from_db=NO_USER;
 
+    string message = "";
 
     cout<<"Enter 1 to authorization menu or"<<endl;
     cout<<"      2 to registration menu: ";
@@ -793,7 +769,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
                 default: cout<<"No such operation"<<endl; break;
             }
 
-        }while(makeChoice(choice));
+        }while(makeChoice(choice, LOCAL, message));
 
     }
     else if(user_role_from_db==CUSTOMER)
@@ -813,7 +789,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
                 default: cout<<"No such operation"<<endl; break;
             }
 
-        }while(makeChoice(choice));
+        }while(makeChoice(choice, LOCAL, message));
     }
     else
     {
