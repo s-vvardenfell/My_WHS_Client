@@ -27,7 +27,6 @@ enum Request_Codes
     SELL_MENU = 44444,
     REGISTRATION = 55555,
     CHECK_ORDER_STATUS = 66666,
-    CHANGE_USER = 77777,
     USER_EXIT = 88888,
 
 };
@@ -655,16 +654,14 @@ int selectOperation(int& auth)
             cout <<"[1] Sell goods"<<endl;
             cout <<"[2] Show balance"<<endl;
             cout <<"[3] Show item detailed info"<<endl;
-            cout <<"[4] Change user"<<endl;
-            cout <<"[5] Exit"<<endl;
+            cout <<"[4] Exit"<<endl;
         }
         else
         if(auth==CUSTOMER)
         {
 
             cout <<"[1] Check order status/details"<<endl;
-            cout <<"[2] Change user"<<endl;
-            cout <<"[3] Exit"<<endl;
+            cout <<"[2] Exit"<<endl;
             //cout <<"[3] Make new order"<<endl; //deleted
         }
 
@@ -683,17 +680,6 @@ int selectOperation(int& auth)
 	}
 }
 
-void change_user()
-{
-    cout<<"========Changing user========"<<endl;
-
-    string request_code=to_string(CHANGE_USER);
-    int msg_size=request_code.size();
-    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-    send(Connection, request_code.c_str(), msg_size, NULL);
-
-
-}
 int exit_from_client()
 {
     cout<<"=======Exiting from client==========="<<endl;
@@ -702,6 +688,9 @@ int exit_from_client()
     int msg_size=request_code.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
     send(Connection, request_code.c_str(), msg_size, NULL);
+
+    shutdown(Connection, SD_BOTH);
+
 
     exit(0);
 
@@ -725,6 +714,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
     addr.sin_family = AF_INET;
 
     Connection = socket(AF_INET, SOCK_STREAM, NULL);
+
     if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0)
     {
         cout << "Failed connect to server" << endl;
@@ -762,8 +752,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
                 case 1: sell_goods(); break;
                 case 2: show_inventory_balance(); break;
                 case 3: show_item_detail_info(); break;
-                case 4: change_user(); break;
-                case 5: exit_from_client(); break;
+                case 4: exit_from_client(); break;
                 //any other functions
 
                 default: cout<<"No such operation"<<endl; break;
@@ -782,8 +771,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
             {
 
                 case 1: check_order_status(); break;
-                case 2: change_user(); break;
-                case 3: exit_from_client(); break;
+                case 2: exit_from_client(); break;
                 //case 4: make_order(); break; //for instance; any other functions
 
                 default: cout<<"No such operation"<<endl; break;
@@ -799,6 +787,10 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
 
     //exit_from_client();
 
+
     system("pause");
+
+//    closesocket(Connection);
+//    WSACleanup();
     return 0;
 }
