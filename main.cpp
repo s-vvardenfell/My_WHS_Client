@@ -139,7 +139,7 @@ void sell_goods()
     string stock_amount = temp_str.substr(0, temp_str.find('*'));
     temp_str.erase(0, temp_str.find('*')+1);
 
-    string stock_price = temp_str.erase(temp_str.size());//deleting '\n'
+    string stock_price = temp_str.erase(temp_str.size()-1);//deleting '\n'
 
 
     cout<<"There is "<<stock_amount<<" \""<<stock_goods<<"\" worth "<<stock_price<<" rubles each."<<endl;
@@ -191,7 +191,7 @@ void sell_goods()
     cout<<order_total_cost<<endl;
 
     delete[] order_total_cost;
-
+    cout<<"Confirm order?"<<endl;
     //получаем имя и адрес клиента
     string str, customer_name, customer_address;
 
@@ -363,7 +363,7 @@ void authorization(string& user_name, int& user_role)
                 continue;
             if (isdigit(str[nIndex]))
                 continue;
-            if (str[nIndex] == '_') //(isspace(str[nIndex])) исправить? это пропускает 2 слова раздел пробелами при вводе
+            if (str[nIndex] == '_')
                 continue;
             else
             {
@@ -454,7 +454,7 @@ void registration(string& user_name, int& user_role)
                 continue;
             if (isdigit(str[nIndex]))
                 continue;
-            if (str[nIndex] == '_') //(isspace(str[nIndex])) исправить? это пропускает 2 слова раздел пробелами при вводе
+            if (str[nIndex] == '_')
                 continue;
             else
             {
