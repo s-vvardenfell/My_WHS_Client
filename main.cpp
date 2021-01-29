@@ -7,6 +7,8 @@
 #include <fstream>
 using namespace std;
 
+#define PORT 1111
+#define SERVERADDR "127.0.0.1"
 SOCKET Connection;
 
 int validationInput();
@@ -691,39 +693,86 @@ int exit_from_client()
 
     shutdown(Connection, SD_BOTH);
 
+    closesocket(Connection);
+    WSACleanup();
+
 
     exit(0);
 
 }
 
-int main(int argc, char* argv[])//что-то придумать с флагами?
+int main(int argc, char* argv[])
 {
 
     WSADATA wsaData;
     WORD DLLVersion = MAKEWORD(2, 1);
+
     if (WSAStartup(DLLVersion, &wsaData) != 0)
     {
-        cout << "Error" << endl;
-        exit(1);
+        cout<<"WSAStartup error, "<<WSAGetLastError()<<endl;
+        return -1;
     }
-
-    SOCKADDR_IN addr;
-    int sizeofaddr = sizeof(addr);
-    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    addr.sin_port = htons(1111);
-    addr.sin_family = AF_INET;
 
     Connection = socket(AF_INET, SOCK_STREAM, NULL);
 
-    if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0)
+    if(Connection<0)
     {
-        cout << "Failed connect to server" << endl;
-        return 1;
+        cout<<"Function socket() error, "<<WSAGetLastError()<<endl;
+        return -1;
+    }
+
+
+    SOCKADDR_IN addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(PORT);
+
+    HOSTENT *hst;
+    int addr_size = sizeof(addr);
+
+    if(inet_addr(SERVERADDR)!= INADDR_NONE)
+    {
+        addr.sin_addr.s_addr = inet_addr(SERVERADDR);
     }
     else
     {
-        cout << "Connected to server!" << endl;
+        if(hst = gethostbyname(SERVERADDR))
+            ((unsigned long*)&addr.sin_addr)[0] = ((unsigned long**)hst->h_addr_list)[0][0];
+        else
+        {
+            cout<<"Invalid address: "<<SERVERADDR<<endl;
+            closesocket(Connection);
+            WSACleanup();
+            return -1;
+        }
     }
+
+    if(connect(Connection,(sockaddr*)&addr,addr_size))
+    {
+        cout<<"Connection error: "<<WSAGetLastError()<<endl;
+        return -1;
+    }
+    else
+    {
+        cout<<"Connected successfully with "<<SERVERADDR<<endl;
+    }
+
+// simply, but not so cool
+//    SOCKADDR_IN addr;
+//    addr.sin_family = AF_INET;
+//    addr.sin_port = htons(1111);
+//    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+//
+//    int sizeofaddr = sizeof(addr);
+//
+//    if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0)
+//    {
+//        cout << "Failed connect to server" << endl;
+//        return 1;
+//    }
+//    else
+//    {
+//        cout << "Connected to server!" << endl;
+//    }
 
     char choice;
     string user_name_from_db;
@@ -784,13 +833,7 @@ int main(int argc, char* argv[])//что-то придумать с флагами?
         cout<<"Wrong user name or password"<<endl;
     }
 
-
-    //exit_from_client();
-
-
     system("pause");
 
-//    closesocket(Connection);
-//    WSACleanup();
     return 0;
 }
