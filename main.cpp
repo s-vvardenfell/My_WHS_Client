@@ -9,6 +9,8 @@ using namespace std;
 
 #define PORT 1111
 #define SERVERADDR "127.0.0.1"
+#define NO_ITEM "000"
+
 SOCKET Connection;
 
 int validationInput();
@@ -30,6 +32,7 @@ enum Request_Codes
     REGISTRATION = 55555,
     CHECK_ORDER_STATUS = 66666,
     USER_EXIT = 88888,
+    ADD_ITEMS_TO_DB = 99999
 
 };
 
@@ -128,10 +131,10 @@ void sell_goods()
 
     delete[] records_from_table;
 
-    if(temp_str=="0 results")
+    if(temp_str==NO_ITEM)
     {
         cout<<"no such item code"<<endl;
-        return;
+        continue;
     }
 
     string stock_goods = temp_str.substr(0, temp_str.find('*'));
@@ -173,7 +176,7 @@ void sell_goods()
         cout<<"In your order:"<<endl;
         cout<<temp_str<<endl;
 
-    }while(makeChoice(choice, SERVER, message));// отправляет на сервер сообщение о продолжении ввода
+    }while(temp_str=="000" ? makeChoice(choice, LOCAL, message) : makeChoice(choice, SERVER, message));// отправляет на сервер сообщение о продолжении ввода
 
     cout<<"Your final order: "<<endl;
     cout<<temp_str<<endl;
@@ -529,7 +532,7 @@ void check_order_status()//принимает инт номер заказа возвр 0 если нет заказа; и
 {
     cout<<"===checking order status==="<<endl;
 
-    //send request code
+    //sending request code
     string request_code=to_string(CHECK_ORDER_STATUS);
     int msg_size=request_code.size();
     send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
@@ -608,6 +611,97 @@ bool makeChoice(char& choice, int version, string &msg) // предлагаем повторить
 
 }
 
+void add_items_to_db_from_file()
+{
+    cout<<"=======adding items to db from file (txt/xml/csv)=========="<<endl;
+    //sending request code
+//    string request_code=to_string(ADD_ITEMS_TO_DB);
+//    int msg_size=request_code.size();
+//
+//    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+//    send(Connection, request_code.c_str(), msg_size, NULL);
+
+    //suggesting enter the file name and selecting the separator
+
+    cout<<"Enter file name (with .csv/.txt/.xml): ";
+
+    string file_name, temp_str;
+
+    while(true)
+    {
+
+        cout<<"Enter file name: "<<endl;
+        getline(cin, temp_str);
+
+        bool bRejected = false;
+
+        for (unsigned int nIndex = 0; nIndex < temp_str.length() && !bRejected; ++nIndex)
+        {
+            if (isalpha(temp_str[nIndex]))
+                continue;
+            if (isdigit(temp_str[nIndex]))
+                continue;
+            if (isspace(temp_str[nIndex]))
+                continue;
+            if (temp_str[nIndex] == '_')
+                continue;
+            if (temp_str[nIndex] == '.')
+                continue;
+            else
+            {
+                cout<<"Invalid input"<<endl;
+                bRejected = true;
+            }
+        }
+
+        if (!bRejected)
+        {
+            file_name=temp_str;
+            bRejected=false;
+            break;
+        }
+    }
+
+    cout<<"file_name: "<<file_name<<endl;
+
+    if(1/*если имя файла содержит .txt/.csv */)
+    {
+        //reading the file
+        ifstream file(file_name);
+
+        if(!file)
+        {
+        cerr<<"File couldn't be opened"<<endl;
+        cerr<<"Error: "<<strerror(errno)<<endl;
+        }
+
+        string data_from_file;
+
+        while(getline(file,temp_str))
+        {
+            data_from_file.append(temp_str).append("\n");
+        }
+
+        file.close();
+
+        cout<<data_from_file<<endl;
+
+        //отправляем данные
+    }
+    else if(0 /*если имя файла содержит .xml*/)
+    {
+        //отправляем данные
+    }
+
+    //получаем ответ что всё ок и сколько загружено
+
+
+
+
+
+
+}
+
 int validationInput()
 {
     int val;
@@ -656,7 +750,8 @@ int selectOperation(int& auth)
             cout <<"[1] Sell goods"<<endl;
             cout <<"[2] Show balance"<<endl;
             cout <<"[3] Show item detailed info"<<endl;
-            cout <<"[4] Exit"<<endl;
+            cout <<"[4] Add items to db from file (txt/xml)"<<endl;
+            cout <<"[5] Exit"<<endl;
         }
         else
         if(auth==CUSTOMER)
@@ -801,7 +896,8 @@ int main(int argc, char* argv[])
                 case 1: sell_goods(); break;
                 case 2: show_inventory_balance(); break;
                 case 3: show_item_detail_info(); break;
-                case 4: exit_from_client(); break;
+                case 4: add_items_to_db_from_file(); break;
+                case 5: exit_from_client(); break;
                 //any other functions
 
                 default: cout<<"No such operation"<<endl; break;
