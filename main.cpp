@@ -1,10 +1,10 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <iostream>
-#include <string>
-#include <sstream>
-#include <ctime>
 #include <fstream>
+#include <string>
+#include <ctime>
+
 using namespace std;
 
 #define PORT 1111
@@ -98,7 +98,8 @@ void show_inventory_balance()
 void sell_goods()
 {
     cout<<"===selling goods==="<<endl;
-    stringstream ss_order;
+
+    string ss_order;
     char choice;
     string temp_str;
 
@@ -168,11 +169,11 @@ void sell_goods()
 
         }while(notEnough);
 
-        ss_order<<str_item_code<<"*"<<to_string(amnt)<<"_";
+        ss_order+=str_item_code.append("*").append(to_string(amnt)).append("_");
         cout<<endl;
         cout<<"Product was added to your order"<<endl;
 
-        temp_str=ss_order.str();
+        temp_str=ss_order;
         cout<<"In your order:"<<endl;
         cout<<temp_str<<endl;
 
@@ -615,17 +616,17 @@ void add_items_to_db_from_file()
 {
     cout<<"=======adding items to db from file (txt/xml/csv)=========="<<endl;
     //sending request code
-//    string request_code=to_string(ADD_ITEMS_TO_DB);
-//    int msg_size=request_code.size();
-//
-//    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
-//    send(Connection, request_code.c_str(), msg_size, NULL);
+    string request_code=to_string(ADD_ITEMS_TO_DB);
+    int msg_size=request_code.size();
+
+    send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    send(Connection, request_code.c_str(), msg_size, NULL);
 
     //suggesting enter the file name and selecting the separator
 
-    cout<<"Enter file name (with .csv/.txt/.xml): ";
+    cout<<"Enter file name (with .csv/.txt): ";
 
-    string file_name, temp_str;
+    string file_name, temp_str, file_format;
 
     while(true)
     {
@@ -662,44 +663,60 @@ void add_items_to_db_from_file()
         }
     }
 
+
     cout<<"file_name: "<<file_name<<endl;
 
-    if(1/*если имя файла содержит .txt/.csv */)
-    {
-        //reading the file
-        ifstream file(file_name);
+    file_format = file_name.substr(file_name.find('.'));
 
-        if(!file)
+    cout<<file_format<<endl;
+
+    if(file_format==".csv"||file_format==".txt")
+    {
+        ifstream infile(file_name);
+        if(infile.fail())
         {
-        cerr<<"File couldn't be opened"<<endl;
-        cerr<<"Error: "<<strerror(errno)<<endl;
+            cout<<"Error: "<<strerror(errno)<<endl;
+            cout<<"File couldn't be opened or not existed."<<endl;
+            return;
         }
 
-        string data_from_file;
+        string send_data;
+        while(getline(infile,temp_str))
+            send_data+=temp_str+'\n';
 
-        while(getline(file,temp_str))
-        {
-            data_from_file.append(temp_str).append("\n");
-        }
+        //отправляем данные для обработки на сервере
 
-        file.close();
+        msg_size=send_data.size();
+        send(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+        send(Connection, send_data.c_str(), msg_size, NULL);
 
-        cout<<data_from_file<<endl;
-
-        //отправляем данные
     }
-    else if(0 /*если имя файла содержит .xml*/)
+    else if(file_format==".xml")
     {
-        //отправляем данные
+
+        cout<<"xml format is not available yet"<<endl;
+
+//        TiXmlDocument xml_file("example.xml");
+//
+//        if(!xml_file.LoadFile())
+//        {
+//            return -1;
+//        }
+
+    }
+    else
+    {
+        cout<<"Wrong file format."<<endl;
+        return;
     }
 
-    //получаем ответ что всё ок и сколько загружено
+    //getting the number of new records
+    recv(Connection, reinterpret_cast<char*>(&msg_size), sizeof(int), NULL);
+    char* new_records = new char[msg_size+1];
+    new_records[msg_size] = '\0';
+    recv(Connection, new_records, msg_size, NULL);
 
-
-
-
-
-
+    cout<<"Number of new records: "<<new_records<<endl;
 }
 
 int validationInput()
@@ -798,6 +815,9 @@ int exit_from_client()
 
 int main(int argc, char* argv[])
 {
+    setlocale (LC_ALL, "Russian");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
 
     WSADATA wsaData;
     WORD DLLVersion = MAKEWORD(2, 1);
@@ -851,7 +871,7 @@ int main(int argc, char* argv[])
         cout<<"Connected successfully with "<<SERVERADDR<<endl;
     }
 
-// simply, but not so cool
+// simple, but not so cool
 //    SOCKADDR_IN addr;
 //    addr.sin_family = AF_INET;
 //    addr.sin_port = htons(1111);
